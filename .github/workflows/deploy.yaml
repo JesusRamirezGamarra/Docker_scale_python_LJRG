@@ -27,6 +27,18 @@ jobs:
           ls -l ~/.ssh
           cat ~/.ssh/known_hosts
 
+      - name: Instalar expect
+        run: sudo apt-get update && sudo apt-get install -y expect
+
+      - name: Conectar al servidor con passphrase usando `expect`
+        run: |
+          expect <<EOF
+          spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "echo Conexión exitosa!"
+          expect "Enter passphrase for key"
+          send "123123\r"
+          expect eof
+          EOF
+
       - name: Probar conexión SSH con `sshpass`
         run: |
           sshpass -p "123123" ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "echo Conexión exitosa!"
