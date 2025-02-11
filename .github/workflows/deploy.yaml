@@ -23,6 +23,7 @@ jobs:
         run: |
           ls -l ~/.ssh
           cat ~/.ssh/id_rsa
+          cat ~/.ssh/known_hosts
 
       - name: Conectando y desplegando el compose...
         run: |
