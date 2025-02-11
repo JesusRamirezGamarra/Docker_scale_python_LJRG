@@ -1,6 +1,6 @@
-name: Workflow docker compose
+name: Deploy Flask + Nginx en DigitalOcean
 
-on: 
+on:
   push:
     branches:
       - main
@@ -22,6 +22,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa 67.207.84.219 >> ~/.ssh/known_hosts
 
+      - name: Configurar permisos del firewall (UFW)
+        run: |
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 << 'EOF'
+            sudo ufw allow 8090/tcp
+            sudo ufw reload
+            sudo ufw status
+          EOF
+
       - name: Probar conexión SSH con `expect`
         run: |
           expect <<EOF
@@ -34,7 +42,7 @@ jobs:
       - name: Sincronizar archivos con el servidor usando `expect`
         run: |
           expect <<EOF
-          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ root@67.207.84.219:/root/codigo/docker-scale-python-LJRG
+          spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ root@67.207.84.219:/root/codigo/docker-flask-nginx
           expect "Enter passphrase for key"
           send "123123\r"
           expect eof
@@ -47,11 +55,9 @@ jobs:
           expect "Enter passphrase for key"
           send "123123\r"
           expect "#"
-          send "cd /root/codigo/docker-scale-python-LJRG\r"
-          send "docker compose down || docker-compose down\r"
-          send "docker compose pull\r"
-          send "docker compose up -d --build || docker-compose up -d --build\r"
-          send "docker system prune -f\r"
+          send "cd /root/codigo/docker-flask-nginx\r"
+          send "docker-compose down\r"
+          send "docker-compose up -d --build\r"
           send "exit\r"
           expect eof
           EOF
@@ -64,6 +70,73 @@ jobs:
           send "123123\r"
           expect eof
           EOF
+
+# # name: Workflow docker compose
+
+# # on: 
+# #   push:
+# #     branches:
+# #       - main
+
+# # jobs:
+# #   deploy-compose:
+# #     runs-on: ubuntu-latest
+# #     steps:
+# #       - name: Clonar repositorio
+# #         uses: actions/checkout@v4
+
+# #       - name: Instalar `expect`
+# #         run: sudo apt-get update && sudo apt-get install -y expect
+
+# #       - name: Configurar SSH y conectar al servidor
+# #         run: |
+# #           mkdir -p ~/.ssh
+# #           echo "${{ secrets.SSH_PRIVATE_KEY_LJRG }}" > ~/.ssh/id_rsa
+# #           chmod 600 ~/.ssh/id_rsa
+# #           ssh-keyscan -H -t rsa 67.207.84.219 >> ~/.ssh/known_hosts
+
+# #       - name: Probar conexión SSH con `expect`
+# #         run: |
+# #           expect <<EOF
+# #           spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "echo Conexión exitosa!"
+# #           expect "Enter passphrase for key"
+# #           send "123123\r"
+# #           expect eof
+# #           EOF
+
+# #       - name: Sincronizar archivos con el servidor usando `expect`
+# #         run: |
+# #           expect <<EOF
+# #           spawn rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ root@67.207.84.219:/root/codigo/docker-scale-python-LJRG
+# #           expect "Enter passphrase for key"
+# #           send "123123\r"
+# #           expect eof
+# #           EOF
+
+# #       - name: Conectar al servidor y desplegar con Docker Compose usando `expect`
+# #         run: |
+# #           expect <<EOF
+# #           spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219
+# #           expect "Enter passphrase for key"
+# #           send "123123\r"
+# #           expect "#"
+# #           send "cd /root/codigo/docker-scale-python-LJRG\r"
+# #           send "docker compose down || docker-compose down\r"
+# #           send "docker compose pull\r"
+# #           send "docker compose up -d --build || docker-compose up -d --build\r"
+# #           send "docker system prune -f\r"
+# #           send "exit\r"
+# #           expect eof
+# #           EOF
+
+# #       - name: Verificar estado de los contenedores usando `expect`
+# #         run: |
+# #           expect <<EOF
+# #           spawn ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+# #           expect "Enter passphrase for key"
+# #           send "123123\r"
+# #           expect eof
+# #           EOF
 
 
 
