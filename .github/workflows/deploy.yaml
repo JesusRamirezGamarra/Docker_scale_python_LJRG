@@ -3,7 +3,7 @@ name: Workflow docker compose
 on: 
   push:
     branches:
-      - master
+      - main
 
 jobs:
   deploy-compose:
@@ -22,8 +22,9 @@ jobs:
       - name: Conectando y desplegando el compose...
         run: |
           ssh -i  ~/.ssh/id_rsa root@67.207.84.219 << 'EOF'
-            cd /root/codigo/docker-scale-python
-            git pull origin master
+            mkdir -p /root/codigo/docker-scale-python-LJRG
+            cd /root/codigo/docker-scale-python-LJRG
+            git pull origin main
             docker compose down
             docker compose up -d --build
           EOF
