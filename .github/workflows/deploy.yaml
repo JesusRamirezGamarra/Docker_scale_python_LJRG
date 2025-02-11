@@ -65,11 +65,6 @@ jobs:
           expect eof
           EOF
 
-      - name: Notificar en Slack
-        uses: rtCamp/action-slack-notify@v2
-        env:
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
-          SLACK_MESSAGE: "🚀 Despliegue exitoso en DigitalOcean completado!"
 
 
 
