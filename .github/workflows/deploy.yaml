@@ -22,32 +22,91 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa 67.207.84.219 >> ~/.ssh/known_hosts
 
-      - name: Validar contenido de mi secret
-        run: |
-          echo "${{ secrets.SSH_PRIVATE_KEY_LJRG }}"
-        env:
-          ACTIONS_STEP_DEBUG: true
-
-      - name: Verificar contenido de ~/.ssh/id_rsa
+      - name: Validar contenido de ~/.ssh
         run: |
           ls -l ~/.ssh
-          cat ~/.ssh/id_rsa
           cat ~/.ssh/known_hosts
 
-      - name: Conectando y desplegando el compose...
+      - name: Probar conexión SSH con `sshpass`
+        run: |
+          sshpass -p "123123" ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "echo Conexión exitosa!"
+
+      - name: Sincronizar archivos con el servidor
+        run: |
+          sshpass -p "123123" rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa" ./ root@67.207.84.219:/root/codigo/docker-scale-python-LJRG
+
+      - name: Conectar al servidor y desplegar con Docker Compose
         run: |
           sshpass -p "123123" ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 << 'EOF'
-            set -e  # Terminar el script si algún comando falla
-            mkdir -p /root/codigo/docker-scale-python-LJRG
+            set -e
             cd /root/codigo/docker-scale-python-LJRG
-            if [ ! -d ".git" ]; then
-              git clone git@github.com:usuario/docker-scale-python-LJRG.git .
-            fi
-            git fetch origin main
-            git reset --hard origin/main
             docker compose down || docker-compose down
-            docker compose up -d --build || docker-compose up -d --build
+            docker compose pull
+            docker compose up --build --no-deps -d web || docker-compose up --build --no-deps -d web
+            docker system prune -f
+            echo "🚀 Despliegue completado con éxito!"
           EOF
+
+      - name: Verificar estado de los contenedores
+        run: sshpass -p "123123" ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 "docker ps --format 'table {{.Names}}\t{{.Status}}'"
+
+      - name: Notificar en Slack
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: "🚀 Despliegue exitoso en Digital Ocean!"
+
+
+# name: Workflow docker compose
+
+# on: 
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy-compose:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Clonar repositorio
+#         uses: actions/checkout@v4
+
+#       - name: Instalar sshpass
+#         run: sudo apt-get update && sudo apt-get install -y sshpass
+
+#       - name: Configurar SSH y conectar al servidor
+#         run: |
+#           mkdir -p ~/.ssh
+#           echo "${{ secrets.SSH_PRIVATE_KEY_LJRG }}" > ~/.ssh/id_rsa
+#           chmod 600 ~/.ssh/id_rsa
+#           ssh-keyscan -H -t rsa 67.207.84.219 >> ~/.ssh/known_hosts
+
+#       - name: Validar contenido de mi secret
+#         run: |
+#           echo "${{ secrets.SSH_PRIVATE_KEY_LJRG }}"
+#         env:
+#           ACTIONS_STEP_DEBUG: true
+
+#       - name: Verificar contenido de ~/.ssh/id_rsa
+#         run: |
+#           ls -l ~/.ssh
+#           cat ~/.ssh/id_rsa
+#           cat ~/.ssh/known_hosts
+
+#       - name: Conectando y desplegando el compose...
+#         run: |
+#           sshpass -p "123123" ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa root@67.207.84.219 << 'EOF'
+#             set -e  # Terminar el script si algún comando falla
+#             mkdir -p /root/codigo/docker-scale-python-LJRG
+#             cd /root/codigo/docker-scale-python-LJRG
+#             if [ ! -d ".git" ]; then
+#               git clone git@github.com:usuario/docker-scale-python-LJRG.git .
+#             fi
+#             git fetch origin main
+#             git reset --hard origin/main
+#             docker compose down || docker-compose down
+#             docker compose up -d --build || docker-compose up -d --build
+#           EOF
 
 
 # name: Workflow docker compose
