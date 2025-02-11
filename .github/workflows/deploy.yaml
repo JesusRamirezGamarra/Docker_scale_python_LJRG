@@ -19,13 +19,14 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H -t rsa 67.207.84.219 >> ~/.ssh/known_hosts
 
-      # - name: Agregar clave privada al agente SSH
-      #   run: |
-      #     mkdir -p ~/.ssh
-      #     echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-      #     chmod 600 ~/.ssh/id_rsa
-      #     ssh-agent bash -c "ssh-add ~/.ssh/id_rsa"
-      #     ssh-keyscan -H 67.207.84.219 >> ~/.ssh/known_hosts
+      - name: Agregar clave privada al agente SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-agent bash -c "ssh-add ~/.ssh/id_rsa"
+          ssh-keyscan -H 67.207.84.219 >> ~/.ssh/known_hosts
+          
       - name: validar contenido de mi secret
         run: |
           echo "${{ secrets.SSH_PRIVATE_KEY }}"
